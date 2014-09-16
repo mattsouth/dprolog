@@ -1,0 +1,14 @@
+{
+    "name" : "dprolog",
+    "version" : "0.0.1",
+    "author" : "Matt South <matt@mattsouth.net>",
+    "repository" : {
+        "type" : "git",
+        "url" : "https://www.github.com/mattsouth/dprolog.git"
+    },
+    "dependencies" : {
+        "coffee-script" :   "*",
+        "mocha" :           "*",
+        "chai" :            "*"
+    }
+}
