@@ -10,5 +10,9 @@
         "coffee-script" :   "*",
         "mocha" :           "*",
         "chai" :            "*"
+    },
+    "scripts": {
+        "test": "coffee -c src test && node node_modules/mocha/bin/mocha",
+        "build": "coffee -c src"
     }
 }
