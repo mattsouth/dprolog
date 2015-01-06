@@ -1,30 +1,34 @@
 should = require('chai').should()
 Prolog = require '../src/prolog'
-Parser = require '../src/prolog.parser'
 
 describe 'Parser', ->
-    it 'should parse a ground predicate', ->
-        kb = Parser.parseKb "father(abraham, esau)."
+    # TODO: test parsing malformed kbs
+    it 'should parse a fact', ->
+        kb = Prolog.parseKb "likes(X, pomegranate)."
         kb.should.have.length 1
-    it 'should parse a non-ground predicate', ->
-        kb = Parser.parseKb "likes(X, pomegranate)."
-        kb.should.have.length 1
+        kb[0].head.functor.should.equal "likes"
+        kb[0].head.params.should.have.length 2
+        kb[0].head.params[0].name.should.equal "X"
+        kb[0].head.params[1].functor.should.equal "pomegranate"
     it 'should parse a rule', ->
-        kb = Parser.parseKb "likes(X, Z) :- likes(X, Y), likes(Y, Z)."
+        kb = Prolog.parseKb "likes(X, Z) :- likes(X, Y), likes(Y, Z)."
         kb.should.have.length 1
+        kb[0].body.should.have.length 2
+        kb[0].body[1].functor.should.equal "likes"
+        kb[0].body[1].params.should.have.length 2
+        kb[0].body[1].params[1].name.should.equal "Z"
     it 'should parse a query', ->
-        q = Parser.parseQuery 'a, b'
+        q = Prolog.parseQuery 'a, b'
         q.should.have.length 2
-###
-describe 'Prolog', ->
+        q[0].functor.should.equal "a"
+        q[1].functor.should.equal "b"
 
-    it 'should unify clauses', ->
-        kb = [
-            new Prolog.Rule(new Prolog.Clause(new Prolog.Symbol('english'), new Prolog.List(new Prolog.Symbol('jack'))), new Prolog.List()),
-            new Prolog.Rule(new Prolog.Clause(new Prolog.Symbol('english'), new Prolog.List(new Prolog.Symbol('jill'))), new Prolog.List())
-            ]
-        query = new Prolog.Clause(new Prolog.Symbol('english'), new Prolog.List(new Prolog.Var('X')))
-        iter = Prolog.solve(query, kb)
+describe 'Prolog', ->
+    it 'should match terms', ->
+        kb = Prolog.parseKb "english(jack). 
+            english(jill)."
+        query = Prolog.parseQuery "english(X)"
+        iter = Prolog.solve(kb, query)
         results = []
         iter.hasNext().should.equal true
         results.push iter.next().toAnswerString()
@@ -36,17 +40,13 @@ describe 'Prolog', ->
         results.should.include 'english(jack)'
         results.should.include 'english(jill)'
 
-    it 'should unify rules', ->
-        kb = [
-            new Prolog.Rule(new Prolog.Clause(new Prolog.Symbol('grandfather'), new Prolog.List(new Prolog.Var('X'), new Prolog.Var('Y'))), 
-                new Prolog.List(new Prolog.Clause(new Prolog.Symbol('father'), new Prolog.List(new Prolog.Var('X'), new Prolog.Var('Z'))), 
-                new Prolog.Clause(new Prolog.Symbol('father'), new Prolog.List(new Prolog.Var('Z'), new Prolog.Var('Y'))))),
-            new Prolog.Rule(new Prolog.Clause(new Prolog.Symbol('father'), new Prolog.List(new Prolog.Symbol('abe'), new Prolog.Symbol('homer'))), new Prolog.List()),
-            new Prolog.Rule(new Prolog.Clause(new Prolog.Symbol('father'), new Prolog.List(new Prolog.Symbol('homer'), new Prolog.Symbol('lisa'))), new Prolog.List()),
-            new Prolog.Rule(new Prolog.Clause(new Prolog.Symbol('father'), new Prolog.List(new Prolog.Symbol('homer'), new Prolog.Symbol('bart'))), new Prolog.List())
-            ]
-        query = new Prolog.Clause(new Prolog.Symbol('grandfather'), new Prolog.List(new Prolog.Symbol('abe'), new Prolog.Var('X')))
-        iter = Prolog.solve(query, kb)
+    it 'should use rules', ->
+        kb = Prolog.parseKb "grandfather(X,Y) :- father(X,Z), father(Z,Y). 
+            father(abe, homer). 
+            father(homer, bart). 
+            father(homer, lisa)."
+        query = Prolog.parseQuery "grandfather(abe, X)"
+        iter = Prolog.solve(kb, query)
         results = []
         iter.hasNext().should.equal true
         results.push iter.next().toAnswerString()
@@ -59,14 +59,9 @@ describe 'Prolog', ->
         results.should.include 'grandfather(abe, bart)'
 
     it 'should recurse (infinitely if you let it)', ->
-        kb = [
-            new Prolog.Rule(new Prolog.Clause(new Prolog.Symbol('nat'), new Prolog.List(new Prolog.Symbol('z'))), new Prolog.List()),
-            new Prolog.Rule(
-                new Prolog.Clause(new Prolog.Symbol('nat'), new Prolog.List(new Prolog.Clause(new Prolog.Symbol('s'), new Prolog.List(new Prolog.Var('X'))))),
-                new Prolog.List(new Prolog.Clause(new Prolog.Symbol('nat'), new Prolog.List(new Prolog.Var('X')))))
-            ]
-        query = new Prolog.Clause(new Prolog.Symbol('nat'), new Prolog.List(new Prolog.Var('Y')))
-        iter = Prolog.solve(query, kb)
+        kb = Prolog.parseKb "nat(z). nat(s(X)) :- nat(X)."
+        query = Prolog.parseQuery "nat(Y)"
+        iter = Prolog.solve(kb, query)
         iter.hasNext().should.equal true
         iter.next().toAnswerString().should.equal "nat(z)"
         iter.hasNext().should.equal true
@@ -74,4 +69,3 @@ describe 'Prolog', ->
         iter.hasNext().should.equal true
         iter.next().toAnswerString().should.equal "nat(s(s(z)))"
         # ad infinitum ...
-###

@@ -1,5 +1,6 @@
 ###
-A standard prolog interpreter
+A simple prolog interpreter, based on algorithm outlined 
+on page 12 of The Art of Prolog (Sterling and Shapiro).
 ###
 
 # an environment is a set of substitutions
@@ -8,38 +9,18 @@ addBinding = (env, name, value) ->
         env[key] = env[key].rewrite(name: value)
     env[name] = value
 
-# Javascript Array is used for Rule.body and Term.params
+# [] used for Rule.body and Term.params
 Array.prototype.rewrite = (env) ->
     item.rewrite(env) for item in @
-Array.prototype.rename = (suffix) ->
-    item.rename(suffix) for item in @
-Array.prototype.toAnswerString = () ->
-    (item.toAnswerString() for item in @).join(", ")
-
-class exports.Var
-    constructor: (@name) ->
-    rename: (name) -> new Var(@name+name)
-    rewrite: (env) -> env[@name] || @
-    unify: (that, env) -> 
-        if env[@name] 
-            env[@name].unify(that, env)
-        else
-            addBinding(env, @name, that.rewrite(env))
-    toAnswerString: -> @name
 
 class exports.Term
     constructor: (@functor, @params = []) ->
-    rename: (name) ->
-        new exports.Term @functor, (x.rename(name) for x in @params)
     rewrite: (env) ->
         new exports.Term @functor, (x.rewrite(env) for x in @params)
     unify: (that, env) ->
-        if that instanceof exports.Term
-            return false if that.params.length isnt @params.length or that.functor isnt @functor
-            @params.every (param, idx) ->
-                param.unify that.params[idx], env
-        else
-            that.unify this, env
+        return false if that.params.length isnt @params.length or that.functor isnt @functor
+        @params.every (param, idx) ->
+            param.unify that.params[idx], env
     isGround: ->
         @params.length is 0 or @params.every (param) ->
             not(param instanceof exports.Var) and param.isGround()
@@ -47,58 +28,40 @@ class exports.Term
         "#{@functor}#{if @params.length>0 then "(" + (x.toAnswerString() for x in @params).join(", ") + ")" else ""}"
 
 class exports.Rule
-    constructor: (@head, @body=[]) ->
-    rename: (name) -> new Rule @head.rename(name), @body.rename(name)
-    toAnswerString: -> "#{@head.toAnswerString()}#{if @body.length>0 then " :- " + @body.toAnswerString() else ""}."
+    constructor: (@head, @body = []) ->
+    toAnswerString: -> 
+        "#{@head.toAnswerString()}#{if @body.length>0 then " :- " + (x.toAnswerString() for x in @body).join(", ") else ""}."
 
-# tracks updated version of query and subsidiary goals
-class State
-    constructor: (@query, @goals) ->
-
-class Solver
-    constructor: (@rules, query) ->
-        @suffix = 0
-        @empty = false
-        # rename call in next line is cheap clone
-        @stateStack = [new State(query, query.rename(""))]
-
-    next: -> @solution || throw 'solution only available after hasNext() returns true'
-
-    hasNext: ->
-        if !@empty 
-            while true
-                # an empty stack means no more solutions
-                if @stateStack.length==0
-                    @empty = true
-                    @solution = null
-                    return false
-                # check stack for any solutions
-                for state, idx in @stateStack
-                    if state.goals.length == 0
-                        @solution = state.query
-                        @stateStack.splice idx, 1
-                        @suffix++
-                        return true
-                # else update the stack
-                state = @stateStack.pop()
-                query = state.query
-                goals = state.goals
-                goal = goals.pop()
-                for rule in @rules
-                    localised = rule.rename(@suffix)
-                    env={}
-                    if localised.head.unify goal, env
-                        newQuery = query.rewrite(env)
-                        newGoals = goals.rewrite(env)
-                        newBody = localised.body.rewrite(env)
-                        newGoals.push(term) for term in newBody by -1
-                        @stateStack.push(new State(newQuery, newGoals))
+class exports.Var
+    constructor: (@name) ->
+    rewrite: (env) -> env[@name] || @
+    unify: (that, env) -> 
+        if env[@name] 
+            env[@name].unify that, env 
         else
-            false
+            addBinding env, @name, that.rewrite(env)
+    toAnswerString: -> @name
 
-# query: an array of terms
-# kb: an array of rules
-exports.solve = (rules, query) -> new Solver(rules, query)
+# query a ground term against the provided kb/program
+# query = a single ground term
+# kb = an array of rules
+exports.solve = (query, kb) -> 
+    if not query.isGround()
+        throw 'cannot interpret a non-ground query'
+    resolvent = [query]
+    while true
+        if resolvent.length is 0 
+            return true
+        goal = resolvent.pop()
+        continue if kb.some (rule) =>
+            env = {}
+            if rule.head.unify goal, env
+                newBody = rule.body.rewrite(env)
+                resolvent.push(term) for term in newBody
+                true
+            else
+                false
+        return false # goal could not be matched
 
 ###############################################################################
 # Parser
@@ -217,4 +180,4 @@ exports.parseKb = (program) ->
 
 # a query is a single term
 exports.parseQuery = (query) ->
-    parseList new Tokeniser(query)
+    parseTerm new Tokeniser(query)

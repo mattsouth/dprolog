@@ -1,6 +1,7 @@
 Prolog = require './prolog'
 
 # a programme is an array of rules
+# todo?: assume stream not string
 exports.parseKb = (program) ->
     tk = new exports.Tokeniser(program)
     kb = []
@@ -11,16 +12,18 @@ exports.parseKb = (program) ->
 
 # a query is an array of clauses
 exports.parseQuery = (query) ->
-    exports.parseBody new exports.Tokeniser(query)
+    #exports.parseBody new exports.Tokeniser(query)
+    exports.parseTerm new exports.Tokeniser(query)
 
+# todo: track line/char of token
 class exports.Tokeniser
     constructor: (@remainder) ->
         @current = null
         @type = null
         @consume()
 
+    # get next token
     consume: () ->
-        # get next token
         matcher = (type, regex) =>
             r = @remainder.match regex
             if r
@@ -38,6 +41,7 @@ class exports.Tokeniser
         # and check for eof
         if @remainder is ""
             @current = null
+        # looking good: grab next token
         return if matcher "punc", /^([\(\)\.,\[\]\|\!]|\:\-)(.*)$/
         return if matcher "var", /^([A-Z_][a-zA-Z0-9_]*)(.*)$/
         return if matcher "id", /^(\{[^\}]*\})(.*)$/
@@ -74,7 +78,7 @@ exports.parseTerm = (tk) ->
     functor = tk.current
     tk.consume()
     if tk.current isnt "("
-        return new Prolog.Symbol(functor)
+        return new Prolog.Clause(new Prolog.Symbol(functor))
     tk.consume()
     p = new Prolog.List()
     while tk.current isnt ")"
