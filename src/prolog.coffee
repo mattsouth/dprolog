@@ -65,7 +65,7 @@ class Solver
     next: -> @solution || throw 'solution only available after hasNext() returns true'
 
     hasNext: ->
-        if !@empty 
+        unless @empty 
             while true
                 # an empty stack means no more solutions
                 if @stateStack.length==0
@@ -93,8 +93,7 @@ class Solver
                         newBody = localised.body.rewrite(env)
                         newGoals.push(term) for term in newBody by -1
                         @stateStack.push(new State(newQuery, newGoals))
-        else
-            false
+        false # if @empty
 
 # query: an array of terms
 # kb: an array of rules
@@ -215,6 +214,6 @@ exports.parseKb = (program) ->
         tk.consume()
     kb
 
-# a query is a single term
+# a query is a list of terms
 exports.parseQuery = (query) ->
     parseList new Tokeniser(query)

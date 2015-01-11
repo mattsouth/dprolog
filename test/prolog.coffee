@@ -1,27 +1,7 @@
 should = require('chai').should()
 Prolog = require '../src/prolog'
 
-describe 'Parser', ->
-    # TODO: test parsing malformed kbs
-    it 'should parse a fact', ->
-        kb = Prolog.parseKb "likes(X, pomegranate)."
-        kb.should.have.length 1
-        kb[0].head.functor.should.equal "likes"
-        kb[0].head.params.should.have.length 2
-        kb[0].head.params[0].name.should.equal "X"
-        kb[0].head.params[1].functor.should.equal "pomegranate"
-    it 'should parse a rule', ->
-        kb = Prolog.parseKb "likes(X, Z) :- likes(X, Y), likes(Y, Z)."
-        kb.should.have.length 1
-        kb[0].body.should.have.length 2
-        kb[0].body[1].functor.should.equal "likes"
-        kb[0].body[1].params.should.have.length 2
-        kb[0].body[1].params[1].name.should.equal "Z"
-    it 'should parse a query', ->
-        q = Prolog.parseQuery 'a, b'
-        q.should.have.length 2
-        q[0].functor.should.equal "a"
-        q[1].functor.should.equal "b"
+# NB Prolog parser is identical to Simple parser, hence no tests
 
 describe 'Prolog', ->
     it 'should match terms', ->

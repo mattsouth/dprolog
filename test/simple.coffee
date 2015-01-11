@@ -1,7 +1,7 @@
 should = require('chai').should()
 Prolog = require '../src/simple'
 
-describe 'Simple Parser', ->
+describe 'Parser', ->
     it 'should parse a fact', ->
         kb = Prolog.parseKb "likes(X, pomegranate)."
         kb.should.have.length 1
@@ -20,7 +20,7 @@ describe 'Simple Parser', ->
         q = Prolog.parseQuery 'a'
         q.functor.should.equal "a"
 
-describe 'Simple Interpreter', ->
+describe 'Simple', ->
     it 'should correctly answer ground query', ->
         kb = Prolog.parseKb "father(abraham, isaac).
             father(haran, lot).
