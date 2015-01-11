@@ -49,3 +49,5 @@ describe 'Prolog', ->
         iter.hasNext().should.equal true
         iter.next().toAnswerString().should.equal "nat(s(s(z)))"
         # ad infinitum ...
+
+    # todo: compound query with unification between terms

@@ -1,5 +1,5 @@
 ###
-A prolog interpreter that expects rules to have beliefs and 
+A prolog interpreter that expects rules to have beliefs
 handles them during reasoning so that proofs have them too.
 ###
 
@@ -48,7 +48,7 @@ class exports.Term
         "#{@functor}#{if @params.length>0 then "(" + (x.toAnswerString() for x in @params).join(", ") + ")" else ""}"
 
 class exports.Rule
-    constructor: (@head, @body=[], @belief=1.0) ->
+    constructor: (@head, @body=[], @belief=1.0, @label) ->
     rename: (name) -> new Rule @head.rename(name), @body.rename(name)
     toAnswerString: -> "#{@head.toAnswerString()}#{if @body.length>0 then " :- " + @body.toAnswerString() else ""}#{if @belief isnt 1 then " #{@belief}" else ""}."
 
@@ -132,7 +132,7 @@ class Tokeniser
         if @remainder is ""
             @current = null
         # looking good: grab next token
-        return if matcher "punc", /^([\(\)\.,\[\]\|\!]|\:\-)(.*)$/
+        return if matcher "punc", /^([\(\)\.,\[\]\|\!]|\:\-|\:)(.*)$/
         return if matcher "bel", /^(1\.0|1|0\.\d*)(.*)$/
         return if matcher "id", /^(\{[^\}]*\})(.*)$/
         return if matcher "var", /^([A-Z_][a-zA-Z0-9_]*)(.*)$/
@@ -143,6 +143,7 @@ class Tokeniser
         @current = null
         @type = "eof"
 
+# Note that facts are rules without bodies
 parseRule = (tk) ->
     getBelief = () ->
         if tk.type is "bel"
@@ -151,16 +152,24 @@ parseRule = (tk) ->
             return belief
         else 
             1.0
-    head = parseTerm(tk)
-    return unless head?
+    headorlabel = parseTerm(tk)
+    return unless headorlabel?
+    if tk.current is ":"
+        label = headorlabel
+        # todo: ensure label is an atom, i.e. a term with no params
+        tk.consume()
+        head = parseTerm(tk)
+    else
+        head = headorlabel
     if tk.current is "." or tk.type is "bel"
+        return null if label?
         return new exports.Rule head, [], getBelief()
     return null if tk.current isnt ":-"
     tk.consume()
     body = parseList(tk)
     belief = getBelief()
     return null if tk.current isnt "."
-    return new exports.Rule(head, body, belief)
+    return new exports.Rule head, body, belief, label
 
 parseList = (tk) ->
     list = []

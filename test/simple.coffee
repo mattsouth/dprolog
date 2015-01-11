@@ -39,7 +39,6 @@ describe 'Simple', ->
     it 'shouldnt accept a non-ground query', ->
         kb = Prolog.parseKb "resistor(power, n1(2))."
         query = Prolog.parseQuery "resistor(power, n1(X))"
-        # todo: Prolog.solve(query, kb).should.throw 'cannot...'
         try
             Prolog.solve(query, kb)
         catch e

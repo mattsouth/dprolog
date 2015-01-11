@@ -12,13 +12,13 @@ describe 'DParser', ->
         kb[0].head.params[1].functor.should.equal "pomegranate"
     it 'should parse a defeasible rule', ->
         kb = DProlog.parseKb "trans: likes(X, Z) :- likes(X, Y), likes(Y, Z) 0.5."
-        kb.should.have.length 2
+        kb.should.have.length 1
         kb[0].belief.should.equal 0.5
+        kb[0].label.functor.should.equal "trans"
         kb[0].body.should.have.length 2
         kb[0].body[1].functor.should.equal "likes"
         kb[0].body[1].params.should.have.length 2
         kb[0].body[1].params[1].name.should.equal "Z"
-        kb[1].head.functor.should.equal "trans"
     it 'should parse a query', ->
         q = DProlog.parseQuery '~flies(tweety)'
         q.should.have.length 1
@@ -59,17 +59,3 @@ describe 'DProlog', ->
         result = iter.next().toAnswerString()
         result.should.equal '~flies(tweety).'
         iter.hasNext().should.equal false
-
-    it 'should recurse (infinitely if you let it)', ->
-        kb = DProlog.parseKb "nat(z). nat(s(X)) :- nat(X) 0.8."
-        query = DProlog.parseQuery "nat(Y)"
-        iter = DProlog.solve(kb, query)
-        iter.hasNext().should.equal true
-        iter.next().toAnswerString().should.equal "nat(z)."
-        iter.hasNext().should.equal true
-        iter.next().toAnswerString().should.equal "nat(s(z)) 0.8."
-        iter.hasNext().should.equal true
-        iter.next().toAnswerString().should.equal "nat(s(s(z))) 0.8."
-        # ad infinitum ...
-    
-    # todo: compound query with unification between terms
